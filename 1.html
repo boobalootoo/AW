@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AR Drawing with Tilt</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      touch-action: none;
+    }
+    video, canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+    }
+    canvas {
+      z-index: 10;
+      touch-action: none;
+    }
+  </style>
+</head>
+<body>
+
+<video id="camera" autoplay playsinline></video>
+<canvas id="drawCanvas"></canvas>
+
+<script>
+  const video = document.getElementById('camera');
+  const canvas = document.getElementById('drawCanvas');
+  const ctx = canvas.getContext('2d');
+  let drawing = false;
+  let rotationX = 0, rotationY = 0, rotationZ = 0;
+
+  // Resize canvas to fit screen size
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  // Get camera feed
+  navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false })
+    .then(stream => {
+      video.srcObject = stream;
+    })
+    .catch(err => {
+      alert("Camera access denied or unavailable.");
+      console.error(err);
+    });
+
+  // Orientation event listener for tilt/gyro data
+  window.addEventListener('deviceorientation', (event) => {
+    // These values give us the tilt in degrees for each axis
+    rotationX = event.beta; // Front-to-back tilt (-180 to 180)
+    rotationY = event.gamma; // Left-to-right tilt (-90 to 90)
+    rotationZ = event.alpha; // Compass rotation (0 to 360)
+  });
+
+  // Function to adjust the drawing based on tilt
+  function applyTiltToDrawing(e) {
+    e.preventDefault();
+
+    if (!drawing) return;
+
+    // Get touch position
+    const touch = e.touches[0];
+    const x = touch.clientX;
+    const y = touch.clientY;
+
+    // Apply rotation based on tilt (this is a simple effect to simulate AR-style anchoring)
+    const offsetX = rotationY / 45; // Adjust factor for desired effect
+    const offsetY = rotationX / 45; // Adjust factor for desired effect
+
+    // Draw on canvas
+    ctx.lineTo(x + offsetX, y + offsetY);
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+  }
+
+  // Touch events for drawing
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    const touch = e.touches[0];
+    ctx.beginPath();
+    ctx.moveTo(touch.clientX, touch.clientY);
+    drawing = true;
+  });
+
+  canvas.addEventListener('touchmove', applyTiltToDrawing);
+
+  canvas.addEventListener('touchend', () => {
+    drawing = false;
+  });
+
+</script>
+
+</body>
+</html>
